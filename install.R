@@ -1,3 +1,1 @@
-install.packages("rMR")
-install.packages("decor")
-
+remotes::install_deps()
