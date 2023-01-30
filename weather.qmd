@@ -12,11 +12,14 @@ library(tidyverse)
 ```{r}
 date <- Sys.Date()
 
-gribs <- paste0("/vsicurl/https://noaa-gefs-pds.s3.amazonaws.com/gefs.",
+gribs <- paste0("/vsicurl/",
+                "https://noaa-gefs-pds.s3.amazonaws.com/gefs.",
                 format(date, "%Y%m%d"),
                 "/00/atmos/pgrb2ap5/geavg.t00z.pgrb2a.0p50.f",
                 stringr::str_pad(seq(3,240,by=3), 3, pad="0"))
+```
 
+```{r}
 date_time = date + lubridate::hours(seq(3,240,by=3))
 
 # USA box.  Choose any dx, dy, dt you want to aggregate/interpolate!
@@ -44,10 +47,19 @@ Now we extract the band of interest
 <https://www.nco.ncep.noaa.gov/pmb/products/gens/gec00.t00z.pgrb2a.0p50.f003.shtml>
 
 ```{r}
+bench::bench_time({
 df <- raster_cube(cube, v) |>
     select_bands("band63") |> 
     extract_geom(sf_sites) |>
-    tibble::as_tibble() |>
-    dplyr::inner_join(sf_sites)
+    as_tibble() |>
+    inner_join(sf_sites) |> 
+    rename(temperature = band63) 
+    }) 
+
+df |>
+    mutate(time = lubridate::as_datetime(time)) |> 
+    filter(site_id %in% unique(site_id)[1:10]) |>
+    ggplot(aes(time, temperature, col=site_id)) + 
+    geom_path(show.legend = FALSE)
 
 ```
